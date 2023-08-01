@@ -49,7 +49,7 @@ void Board::generate_rand() {
 
 void Board::move(const position_t& _pos, const direction_t& _direction) {
 	while (is_movable(_pos, _direction)) {
-		(*this)[_pos + _direction] = (*this)[_pos];
+		(*this)[_pos + _direction.second] = (*this)[_pos];
 
 		(*this)[_pos].reset(); 
 	}
@@ -57,9 +57,9 @@ void Board::move(const position_t& _pos, const direction_t& _direction) {
 
 void Board::merge(position_t _pos, direction_t _direction) {
 	if (!is_edge(_pos, _direction) ||
-		(*this)[_pos + _direction] == (*this)[_pos]) {
+		(*this)[_pos + _direction.second] == (*this)[_pos]) {
 
-		(*this)[_pos + _direction] += (*this)[_pos];
+		(*this)[_pos + _direction.second] += (*this)[_pos];
 
 		(*this)[_pos].reset();
 	}
@@ -83,8 +83,8 @@ bool Board::failed() {
 	if(get_valid_slots().empty()) {
 		map([&](Block& _slot, position_t _pos) {
 			map_all_direction([&](direction_t _direction) {
-				if (!is_out_of_range(_pos + _direction)) {
-					if (is_same(_pos, _pos + _direction)) {
+				if (!is_out_of_range(_pos + _direction.second)) {
+					if (is_same(_pos, _pos + _direction.second)) {
 						return false;
 					}
 				}
@@ -119,7 +119,7 @@ bool Board::is_movable(const position_t& _tar, direction_t _direction) {
 	if (is_edge(_tar, _direction)) {
 		return false;
 	}
-	return static_cast<int>((*this)[_tar + _direction]);
+	return static_cast<int>((*this)[_tar + _direction.second]);
 }
 
 bool Board::is_edge(const position_t& _tar, direction_t _direction) {

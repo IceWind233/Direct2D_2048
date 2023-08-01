@@ -62,23 +62,6 @@ private:
 
 			return tmp -= _rhs;
 		}
-
-		friend position_t& operator+(const position_t& _lhs, const direction_t& _rhs) {
-			position_t tmp(_lhs);
-			tmp.x += _rhs.second.x;
-			tmp.y += _rhs.second.y;
-
-			return tmp;
-		}
-
-		friend position_t& operator-(const position_t& _lhs, const direction_t& _rhs) {
-			position_t tmp(_lhs);
-			tmp.x -= _rhs.second.x;
-			tmp.y -= _rhs.second.y;
-
-			return tmp;
-		}
-
 	};
 
 	const std::map<std::string, position_t> direction = {
