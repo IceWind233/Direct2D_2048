@@ -9,7 +9,7 @@
 int WINAPI wWinMain(HINSTANCE h_instance, HINSTANCE, PWSTR, int n_cmd_show) {
 	MainWindow win;
 
-	if(!win.create(L"2048", WS_OVERLAPPEDWINDOW^WS_THICKFRAME, 0, 0, 0, 400, 400)) {
+	if(!win.create(L"2048", WS_OVERLAPPEDWINDOW^WS_THICKFRAME, 0, 0, 0, 600, 600)) {
 		return 0;
 	}
 
