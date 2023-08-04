@@ -6,6 +6,27 @@
 
 #include "Block.h"
 
+std::map<std::string, Block_Color> kBlockColor =
+{
+		std::make_pair("0", Block_Color(205, 193, 180)),
+		std::make_pair("2", Block_Color(238, 228, 218)),
+		std::make_pair("4", Block_Color(237, 224, 200)),
+		std::make_pair("8", Block_Color(242, 177, 121)),
+		std::make_pair("16", Block_Color(245, 149, 99)),
+		std::make_pair("32", Block_Color(246, 124, 95)),
+		std::make_pair("64", Block_Color(245, 98, 61)),
+		std::make_pair("128", Block_Color(237,207,114)),
+		std::make_pair("256", Block_Color(237,204,97)),
+		std::make_pair("512", Block_Color(237,200,80)),
+		std::make_pair("1024", Block_Color(237,197,63)),
+		std::make_pair("2048", Block_Color(237,194,45)),
+};
+
+
+D2D1::ColorF Block_Color::get_color_f() {
+
+	return color_;
+}
 
 Block::Block():
 	value_(0){}
@@ -30,6 +51,10 @@ bool Block::operator==(const Block& _rhs) const {
 
 void Block::reset() {
 	value_ = 0;
+}
+
+DWORD Block::get_value() {
+	return value_;
 }
 
 HRESULT Block::paint_block(
@@ -57,8 +82,7 @@ HRESULT Block::paint_block(
 	_render_target->BeginDraw();
 
 	//TODO:: Block Color
-	/*_brush->SetColor(parse_color(kBlockColor[_str]));*/
-	_brush->SetColor(D2D1::ColorF(205.f / 255, 193.f / 255, 180.f / 255));
+	_brush->SetColor(kBlockColor[_str].get_color_f());
 	_render_target->FillRoundedRectangle(_round_rect, _brush);
 
 	if(value_ != 0) {
@@ -79,6 +103,14 @@ D2D1::ColorF parse_color(std::initializer_list<uint8_t> _rgb, float _alpha) {
 
 	return {r, g, b, _alpha};
 }
+
+Block_Color::Block_Color(uint8_t r, uint8_t g, uint8_t b) :
+	color_(parse_color({ r, g, b })) {
+}
+
+Block_Color::Block_Color() :
+	color_(D2D1::ColorF(0, 0, 0)) { }
+
 
 /*
 D2D1::ColorF parse_color(rgb8 _rgb, float _alpha) {

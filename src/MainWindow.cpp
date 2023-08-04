@@ -13,14 +13,14 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 			return -1;
 		}
 		board_.generate_rand();
-		/*board_.generate_rand();*/
+		board_.generate_rand();
 		board_.paint_block_mat(m_hwnd_);
+		board_.paint_score(m_hwnd_);
 
 		return 0;
 	}
 
 	case WM_KEYDOWN: {
-		board_.failed();
 		
 		switch (w_param) {
 		case VK_LEFT: {
@@ -40,8 +40,15 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 			break;
 		}
 		}
+
+
 		board_.generate_rand();
 		board_.paint_block_mat(m_hwnd_);
+		board_.paint_score(m_hwnd_);
+		if (board_.failed()) {
+			board_.failed_paint(m_hwnd_);
+
+		}
 
 		return 0;
 	}

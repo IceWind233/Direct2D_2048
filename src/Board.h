@@ -1,12 +1,15 @@
 #ifndef BOARD_H
 #define BOARD_H
 
+#pragma once
+
 #include <vector>
 #include <map>
 #include <array>
 
 #include <d2d1.h>
 #include <d2d1helper.h>
+#include <dwrite.h>
 
 #include "Block.h"
 
@@ -30,7 +33,7 @@ private:
 		int x;
 		int y;
 
-		position_t(size_t _x, size_t _y)
+		position_t(int _x, int _y)
 			: x(_x), y(_y){ }
 
 		position_t(const position_t& _other) = default;
@@ -43,13 +46,13 @@ private:
 
 		position_t& operator-=(const position_t& _rhs);
 
-		friend position_t& operator+(const position_t& lhs, const position_t& _rhs) {
+		friend position_t operator+(const position_t& lhs, const position_t& _rhs) {
 			position_t tmp(lhs);
 
 			return tmp += _rhs;
 		}
 
-		friend position_t& operator-(const position_t& lhs, const position_t& _rhs) {
+		friend position_t operator-(const position_t& lhs, const position_t& _rhs) {
 			position_t tmp(lhs);
 
 			return tmp -= _rhs;
@@ -62,7 +65,6 @@ private:
 		{"kDown",	position_t(0, 1)},
 		{"kLeft",	position_t(-1, 0)},
 	};
-
 
 public:
 
@@ -92,7 +94,11 @@ public:
 
 	HRESULT on_paint(HWND _hwnd);
 
+	HRESULT failed_paint(HWND _hwnd);
+
 	HRESULT paint_block_mat(HWND _hwnd);
+
+	HRESULT paint_score(HWND _hwnd);
 
 	HRESULT handle_key(std::string _arrow_key, HWND _hwnd);
 
@@ -130,6 +136,10 @@ private:
 	grid_t board;
 
 	size_t score;
+
+	bool is_failed;
+
+	bool is_full;
 
 	ID2D1Factory* board_factory_{};
 	ID2D1HwndRenderTarget* render_target_{};

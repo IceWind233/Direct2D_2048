@@ -17,7 +17,11 @@ int WINAPI wWinMain(HINSTANCE h_instance, HINSTANCE, PWSTR, int n_cmd_show) {
 
 	MSG msg = {};
 
+	//TODO::If msg is null, render
 	while (GetMessage(&msg, nullptr, 0, 0)) {
+		if(&msg) {
+			
+		}
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}

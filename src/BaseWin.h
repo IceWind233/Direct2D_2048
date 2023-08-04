@@ -39,7 +39,6 @@ protected:
 	HWND m_hwnd_;
 };
 
-
 template <typename DERIVED_Ty>
 Base_Win<DERIVED_Ty>::Base_Win() :
 	m_hwnd_(nullptr) {
