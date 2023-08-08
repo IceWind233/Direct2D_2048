@@ -90,6 +90,10 @@ public:
 
 	bool failed();
 
+	bool get_failed();
+
+	bool is_operable(const std::string& _arrow_key);
+
 	HRESULT init_paint(HWND _hwnd);
 
 	HRESULT on_paint(HWND _hwnd);
@@ -114,14 +118,13 @@ private:
 	template <typename func_t>
 	void map_all_direction(func_t func);
 
-	template <typename func_t>
-	void switch_direction(func_t _func, direction_t _direction);
-
 	D2D1_RECT_F calculate_block_pos(D2D1_RECT_F init_rect, position_t _pos);
 
 	size_t get_rand(size_t _max);
 
 	bool is_movable(const position_t& _tar, const direction_t& _direction);
+
+	bool is_mergable(const position_t& _tar, const direction_t& _direction);
 
 	bool is_edge(const position_t& _tar, const direction_t& _direction);
 
@@ -178,30 +181,5 @@ void Board::map_all_direction(func_t func) {
 		func(_direction);
 	}
 }
-
-
-// TODO:: try to use lambda
-template <typename func_t>
-void Board::switch_direction(func_t _func, direction_t _direction) {
-	switch (_direction) {
-	case kUp: {
-		_func();
-		return;
-	}
-	case kRight: {
-		_func();
-		return;
-	}
-	case kDown: {
-		_func();
-		return;
-	}
-	case kLeft: {
-		_func();
-		return;
-	}
-	}
-}
-
 
 #endif

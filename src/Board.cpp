@@ -36,7 +36,6 @@ Board::position_t& Board::
 	return *this;
 }
 
-//TODO:: Board Size
 Board::Board() :
 	score(0),
 	is_failed(false),
@@ -75,10 +74,7 @@ void Board::move(const position_t& _pos, const direction_t& _direction) {
 }
 
 void Board::merge(const position_t& _pos, const direction_t& _direction) {
-	if(is_zero(_pos)) return;
-	if (!is_edge(_pos, _direction) && 
-		is_same(_pos + _direction.second, _pos)) {
-
+	if(is_mergable(_pos, _direction)) {
 		(*this)[_pos + _direction.second] += (*this)[_pos];
 		(*this)[_pos].reset();
 
@@ -111,9 +107,8 @@ void Board::calculate_center() {
 }
 
 
-//TODO:: Lambda function return or break;
 bool Board::failed() {
-	if(is_full) {
+	if(get_valid_slots().empty()) {
 		is_failed = true;
 		map([&](Block&, position_t _pos) {
 			auto _next_right = _pos + direction.at("kRight");
@@ -135,6 +130,34 @@ bool Board::failed() {
 	}
 	return is_failed;
 }
+
+bool Board::get_failed() {
+
+	return is_failed;
+}
+
+bool Board::is_operable(const std::string& _arrow_key) {
+	auto _direction = std::make_pair(_arrow_key, direction.at(_arrow_key));
+	bool movable = false;
+
+	map([&](const Block&, const position_t& _pos) {
+		if(is_movable(_pos, _direction)) {
+			movable = true;
+		}
+		}, _direction.second);
+
+	if (movable) return true;
+
+	bool mergable = false;
+	map([&](const Block&, const position_t& _pos) {
+		if (is_mergable(_pos, _direction)) {
+			mergable = true;
+		}
+		}, _direction.second);
+
+	return mergable;
+}
+
 
 HRESULT Board::init_paint(const HWND _hwnd) {
 	if(FAILED(D2D1CreateFactory(
@@ -221,11 +244,11 @@ HRESULT Board::failed_paint(HWND _hwnd) {
 	BeginPaint(_hwnd, &ps);
 	render_target_->BeginDraw();
 
-	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 0.3));
+	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 0.5));
 	auto _mask = render_target_->GetSize();
 	render_target_->FillRectangle(D2D1::Rect(0.f, 0.f, _mask.width, _mask.height), board_brush_);
 
-	board_brush_->SetColor(kTextColor);
+	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black));
 	auto _text_wrapper = D2D1::Rect(_mask.width / 6.f, _mask.height / 4.f, _mask.width * 5 / 6, _mask.height * 3 / 4);
 	render_target_->DrawText(L"Game Over", wcslen(L"Game Over"), text_format_, _text_wrapper, board_brush_);
 
@@ -389,6 +412,15 @@ bool Board::is_movable(const position_t& _tar, const direction_t& _direction) {
 	return false;
 }
 
+bool Board::is_mergable(const position_t& _tar, const direction_t& _direction) {
+	if (is_zero(_tar)) return false;
+	if (!is_edge(_tar, _direction) &&
+		is_same(_tar + _direction.second, _tar))
+		return true;
+
+	return false;
+}
+
 bool Board::is_edge(const position_t& _tar, const direction_t& _direction) {
 	if (_direction.first == "kUp") {
 		return _tar.y == 0;
@@ -422,5 +454,6 @@ bool Board::is_zero(const position_t& _pos) {
 
 	return (*this)[_pos] == 0;
 }
+
 
 

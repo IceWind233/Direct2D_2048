@@ -110,13 +110,3 @@ Block_Color::Block_Color(uint8_t r, uint8_t g, uint8_t b) :
 
 Block_Color::Block_Color() :
 	color_(D2D1::ColorF(0, 0, 0)) { }
-
-
-/*
-D2D1::ColorF parse_color(rgb8 _rgb, float _alpha) {
-	const float r = static_cast<float>(_rgb.r_ + 0) / 255;
-	const float g = static_cast<float>(_rgb.g_ + 1) / 255;
-	const float b = static_cast<float>(_rgb.b_ + 2) / 255;
-	return { r, g, b, _alpha };
-}
-*/

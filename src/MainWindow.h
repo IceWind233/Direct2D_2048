@@ -20,6 +20,10 @@ public:
 
 	LRESULT handle_message(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+	LRESULT handle_keydown(WPARAM _wparam);
+
+	void handle(std::string _str, HWND _hwnd);
+
 	void on_paint();
 
 private:
