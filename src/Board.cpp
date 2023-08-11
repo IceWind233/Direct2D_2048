@@ -2,17 +2,21 @@
 #include <random>
 #include <initializer_list>
 #include <conio.h>
+#include <queue>
 
 #include <d2d1.h>
 #include <d2d1helper.h>
 #include <dwrite.h>
+#include <timeapi.h>
 
 #include "Board.h"
 #include "Block.h"
 
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "dwrite")
+#pragma comment(lib, "winmm.lib")
 
+const size_t kFps = 4;
 
 Board::position_t& Board::
 	position_t::operator+=(const position_t& _rhs) {
@@ -22,7 +26,7 @@ Board::position_t& Board::
 	return *this;
 }
 
-Board::position_t& Board::
+Board::position_t Board::
 	position_t::operator-() const {
 	auto _tmp = position_t((-x), (-y));
 
@@ -36,8 +40,12 @@ Board::position_t& Board::
 	return *this;
 }
 
+bool Board::position_t::operator==(const position_t& _rhs) const {
+	return x == _rhs.x && y == _rhs.y;
+}
+
 Board::Board() :
-	score(0),
+	score_(0),
 	is_failed(false),
 	is_full(false),
 	rect_(D2D1::Rect(0, 0, 0, 0)) {
@@ -53,7 +61,11 @@ Board::~Board() {
 
 Block& Board::operator[](position_t pos) {
 
-	return board[pos.y][pos.x];
+	return board_[pos.y][pos.x];
+}
+
+Block Board::operator[](position_t pos) const {
+	return board_[pos.y][pos.x];
 }
 
 void Board::generate_rand() {
@@ -78,14 +90,20 @@ void Board::merge(const position_t& _pos, const direction_t& _direction) {
 		(*this)[_pos + _direction.second] += (*this)[_pos];
 		(*this)[_pos].reset();
 
-		score += (*this)[_pos + _direction.second].get_value();
+		score_ += (*this)[_pos + _direction.second].get_value();
 	}
 }
 
-void Board::update(const direction_t& _direction) {
-	map([&](Block&, position_t _pos) {
+void Board::update(const direction_t& _direction, HWND _hwnd) {
+	auto _tmp = board_;
+
+	map([&](Block&, const position_t& _pos) {
 		move(_pos, _direction);
 	}, _direction.second);
+
+	auto _diff_mat = calculate_diff(_tmp, board_, _direction);
+	transform_mat(_diff_mat, _hwnd, _direction);
+
 	map([&](Block&, position_t _pos) {
 		merge(_pos, _direction);
 	}, -_direction.second);
@@ -106,6 +124,65 @@ void Board::calculate_center() {
 	);
 }
 
+D2D1_SIZE_F Board::transform(
+	const D2D1_RECT_F& _src,
+	const position_t& _start,
+	const position_t& _diff,
+	D2D1_SIZE_F _step) {
+
+	auto _move_step = _src.bottom - _src.top;
+	auto _x_step = _diff.x * _move_step / kFps + _step.width;
+	auto _y_step = _diff.y * _move_step / kFps + _step.height;
+
+	auto _rect = D2D1::Rect(
+		_src.left + _x_step,
+		_src.top + _y_step,
+		_src.right + _x_step,
+		_src.bottom + _y_step);
+
+	render_target_->BeginDraw();
+
+	(*this)[_start + _diff].paint_block(render_target_, trans_brush_, text_format_, _rect);
+
+	render_target_->EndDraw();
+
+	/*on_paint();*/
+
+	return { _x_step, _y_step };
+}
+
+void Board::transform_mat(const std::array<std::array<position_t, kEdgeLen>, kEdgeLen> _diff_mat,
+	HWND _hwnd, direction_t _direction) {
+	constexpr auto _margin = 7.f;
+	const auto _wrapper_rect = D2D1::Rect(
+		rect_.left + _margin,
+		rect_.top + _margin,
+		rect_.right - _margin,
+		rect_.bottom - _margin);
+
+	std::array<std::array<D2D1_SIZE_F, kEdgeLen>, kEdgeLen> _step_mat{};
+	for (auto i : _step_mat) {
+		i.fill({ 0.f, 0.f });
+	}
+
+	for (auto i = 0; i < kFps; ++i) {
+
+		map([&](const Block&, const position_t& _pos) {
+			if (_diff_mat[_pos.y][_pos.x] == position_t(0, 0)) return;
+
+			const auto block_pos = calculate_block_pos(_wrapper_rect, _pos);
+			_step_mat[_pos.y][_pos.x] = 
+				transform(block_pos, _pos, _diff_mat[_pos.y][_pos.x], _step_mat[_pos.y][_pos.x]);
+
+			}, -_direction.second);
+
+	}
+
+	map([&](const Block&, const position_t& _pos) {
+		if (_diff_mat[_pos.y][_pos.x] == position_t(0, 0)) return;
+		(*this)[_pos + _diff_mat[_pos.y][_pos.x]].set_is_moving(false);
+	});
+}
 
 bool Board::failed() {
 	if(get_valid_slots().empty()) {
@@ -158,7 +235,6 @@ bool Board::is_operable(const std::string& _arrow_key) {
 	return mergable;
 }
 
-
 HRESULT Board::init_paint(const HWND _hwnd) {
 	if(FAILED(D2D1CreateFactory(
 		D2D1_FACTORY_TYPE_SINGLE_THREADED,
@@ -167,10 +243,10 @@ HRESULT Board::init_paint(const HWND _hwnd) {
 		return -1;
 	}
 	// Graphics Resources
+	RECT _rect;
+	GetClientRect(_hwnd, &_rect);
+	D2D1_SIZE_U _size = D2D1::SizeU(_rect.right, _rect.bottom);
 	if (board_brush_ == nullptr) {
-		RECT _rect;
-		GetClientRect(_hwnd, &_rect);
-		D2D1_SIZE_U _size = D2D1::SizeU(_rect.right, _rect.bottom);
 
 		if (FAILED(board_factory_->CreateHwndRenderTarget(
 			D2D1::RenderTargetProperties(),
@@ -211,10 +287,18 @@ HRESULT Board::init_paint(const HWND _hwnd) {
 		}
 	}
 
+	if(trans_brush_ == nullptr) {
+		if (FAILED(
+			render_target_->CreateSolidColorBrush(kBoardColor, &trans_brush_)
+		)) {
+			return -1;
+		}
+	}
+
 	return S_OK;
 }
 
-HRESULT Board::on_paint(const HWND _hwnd) {
+HRESULT Board::on_paint() {
 	calculate_center();
 
 	PAINTSTRUCT ps;
@@ -222,27 +306,24 @@ HRESULT Board::on_paint(const HWND _hwnd) {
 
 	const auto _round_rect =  D2D1::RoundedRect(rect_, kRadius, kRadius);
 
-	BeginPaint(_hwnd, &ps);
 	render_target_->BeginDraw();
 
 	board_brush_->SetColor(kBoardColor);
 	render_target_->Clear(kBackGroundColor);
 	render_target_->FillRoundedRectangle(_round_rect, board_brush_);
 
+	paint_slot();
+
+	paint_block_mat();
+
+	paint_score();
+
 	hr = render_target_->EndDraw();
-
-	EndPaint(_hwnd, &ps);
-
-	paint_block_mat(_hwnd);
 
 	return hr;
 }
 
-HRESULT Board::failed_paint(HWND _hwnd) {
-
-	PAINTSTRUCT ps;
-	BeginPaint(_hwnd, &ps);
-	render_target_->BeginDraw();
+HRESULT Board::failed_paint() {
 
 	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 0.5));
 	auto _mask = render_target_->GetSize();
@@ -252,15 +333,11 @@ HRESULT Board::failed_paint(HWND _hwnd) {
 	auto _text_wrapper = D2D1::Rect(_mask.width / 6.f, _mask.height / 4.f, _mask.width * 5 / 6, _mask.height * 3 / 4);
 	render_target_->DrawText(L"Game Over", wcslen(L"Game Over"), text_format_, _text_wrapper, board_brush_);
 
-	render_target_->EndDraw();
-	EndPaint(_hwnd, &ps);
-
 	return S_OK;
 }
 
-HRESULT Board::paint_block_mat(HWND _hwnd) {
+HRESULT Board::paint_block_mat() {
 
-	PAINTSTRUCT ps;
 	HRESULT hr = S_OK;
 
 	constexpr auto _margin = 7.f;
@@ -270,24 +347,20 @@ HRESULT Board::paint_block_mat(HWND _hwnd) {
 		rect_.right - _margin,
 		rect_.bottom - _margin);
 
-	BeginPaint(_hwnd, &ps);
-
 	for (auto i = 0; i < kEdgeLen; ++i)
 		for (auto j = 0; j < kEdgeLen; ++j) {
-			const auto block_pos = calculate_block_pos(_wrapper_rect, position_t(j, i));
-			(*this)[position_t(j, i)].paint_block(render_target_, board_brush_, text_format_, block_pos);
-		}
+			auto _block = (*this)[position_t(j, i)];
+			if (_block == 0) continue;
+			if (_block.get_is_moving()) continue;
 
-	EndPaint(_hwnd, &ps);
+			const auto _block_pos = calculate_block_pos(_wrapper_rect, position_t(j, i));
+			_block.paint_block(render_target_, trans_brush_, text_format_, _block_pos);
+		}
 
 	return hr;
 }
 
-HRESULT Board::paint_score(HWND _hwnd) {
-
-	PAINTSTRUCT ps;
-	BeginPaint(_hwnd, &ps);
-	render_target_->BeginDraw();
+HRESULT Board::paint_score() {
 
 	board_brush_->SetColor(kBoardColor);
 	auto _size = render_target_->GetSize();
@@ -296,7 +369,7 @@ HRESULT Board::paint_score(HWND _hwnd) {
 
 	board_brush_->SetColor(kTextColor);
 
-	auto _score = std::to_string(score);
+	auto _score = std::to_string(score_);
 	wchar_t* _wcs = new wchar_t[_score.length() + 1];
 	std::mbstowcs(_wcs, _score.c_str(), _score.length() + 1);
 
@@ -317,41 +390,42 @@ HRESULT Board::paint_score(HWND _hwnd) {
 	render_target_->DrawText(L"Score:\n", wcslen(L"Score:\n"), text_format_, _score_text_wrapper, board_brush_);
 	render_target_->DrawText(_wcs, wcslen(_wcs), text_format_, _score_value_wrapper, board_brush_);
 
-	render_target_->EndDraw();
-	EndPaint(_hwnd, &ps);
-
 	delete[] _wcs;
 
 	return S_OK;
 }
 
+HRESULT Board::paint_slot() {
+	HRESULT hr = S_OK;
+
+	constexpr auto _margin = 7.f;
+	const auto _wrapper_rect = D2D1::Rect(
+		rect_.left + _margin,
+		rect_.top + _margin,
+		rect_.right - _margin,
+		rect_.bottom - _margin);
+
+	for (auto i = 0; i < kEdgeLen; ++i)
+		for (auto j = 0; j < kEdgeLen; ++j) {
+			const auto block_pos = calculate_block_pos(_wrapper_rect, position_t(j, i));
+			(*this)[position_t(j, i)].paint_block(render_target_, board_brush_, text_format_, block_pos, true);
+		}
+
+
+	return hr;
+}
+
 HRESULT Board::handle_key(std::string _arrow_key, HWND _hwnd) {
-
 	auto _direction = std::make_pair(_arrow_key, direction.at(_arrow_key));
-	update(_direction);
 
-	PAINTSTRUCT _ps;
-	wchar_t* _wcs = new wchar_t[_arrow_key.length() + 1];
-	std::mbstowcs(_wcs, _arrow_key.c_str(), _arrow_key.length() + 1);
-	auto _tmp_rect = D2D1::Rect(500, 500, 550, 550);
+	update(_direction, _hwnd);
 
-	BeginPaint(_hwnd, &_ps);
-	render_target_->BeginDraw();
-
-	board_brush_->SetColor(D2D1::ColorF(0.f, 1.f, 0.f));
-	render_target_->FillRectangle(_tmp_rect, board_brush_);
-
-	board_brush_->SetColor(D2D1::ColorF(1.f, 0.f, 0.f));
-	render_target_->DrawText(_wcs, wcslen(_wcs), text_format_, _tmp_rect, board_brush_);
-
-	render_target_->EndDraw();
-	EndPaint(_hwnd, &_ps);
-	
 	return S_OK;
 }
 
 HRESULT Board::release_resource() {
 	safe_release(&board_brush_);
+	safe_release(&trans_brush_);
 	safe_release(&board_factory_);
 	safe_release(&render_target_);
 	safe_release(&text_format_);
@@ -383,6 +457,54 @@ D2D1_RECT_F Board::calculate_block_pos(D2D1_RECT_F init_rect, position_t _pos) {
 	return D2D1::Rect(_left, _top, _right, _bottom);
 }
 
+// copy board_ before move
+// move blocks
+// use stack to find same block
+// get diff of cpBoard and board_
+// ret grid_t;
+// transforming through matrix and making animation;
+std::array<std::array<Board::position_t, kEdgeLen>, kEdgeLen> Board::calculate_diff(
+	const grid_t& _pre_grid,
+	const grid_t& _cur_grid,
+	const direction_t& _direction) const {
+	std::array<std::array<Board::position_t, kEdgeLen>, kEdgeLen> _diff_mat{};
+	std::array<position_t, kEdgeLen> _row{};
+	std::queue<position_t> _pos_queue;
+
+	_row.fill({ 0, 0 });
+	_diff_mat.fill(_row);
+
+	position_t _start_pos(0, 0);
+	auto _normal_vector = get_normal_vector(_direction);
+	if (_normal_vector.y == -1 || _normal_vector.x == -1) {
+		_start_pos = { kEdgeLen - 1, kEdgeLen - 1 };
+	}
+
+	for (auto i = 0; i < kEdgeLen; ++i) {
+		for (auto j = 0; j < kEdgeLen; ++j) {
+			auto _pre = _start_pos + i * _normal_vector + j * _direction.second;
+
+			if (_pre_grid[_pre.y][_pre.x] != 0) {
+				_pos_queue.push(_pre);
+			}
+		}
+		for (auto j = 0; j < kEdgeLen; ++j) {
+			auto _cur = _start_pos + i * _normal_vector + j * _direction.second;
+
+			if (_cur_grid[_cur.y][_cur.x] != 0) {
+				auto _pre = _pos_queue.front();
+
+				_diff_mat[_pre.y][_pre.x] = _cur - _pre;
+				_pos_queue.pop();
+			}
+		}
+
+
+	}
+
+	return _diff_mat;
+}
+
 size_t Board::get_rand(size_t _max) {
 	std::random_device _rand;
 	std::mt19937 _rng(_rand());
@@ -391,24 +513,33 @@ size_t Board::get_rand(size_t _max) {
 	return _dist(_rng);
 }
 
+Board::position_t Board::get_normal_vector(const direction_t& _direction) const {
+
+	return { _direction.second.y, _direction.second.x };
+}
+
 bool Board::is_movable(const position_t& _tar, const direction_t& _direction) {
 	auto _next = _tar + _direction.second;
 
 	if (is_zero(_tar)) {
+		(*this)[_tar].set_is_moving(false);
 		return false;
 	}
 	if (is_edge(_tar, _direction)) {
+		(*this)[_tar].set_is_moving(false);
 		return false;
 	}
 	if (is_zero(_next)){
+		(*this)[_tar].set_is_moving(true);
 		return true;
 	}
 	if (is_movable(_next, _direction)) {
 		move(_tar + _direction.second, _direction);
+		(*this)[_tar].set_is_moving(true);
 
 		return true;
 	}
-
+	(*this)[_tar].set_is_moving(false);
 	return false;
 }
 
@@ -454,6 +585,3 @@ bool Board::is_zero(const position_t& _pos) {
 
 	return (*this)[_pos] == 0;
 }
-
-
-

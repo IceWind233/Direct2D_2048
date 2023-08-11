@@ -36,15 +36,23 @@ private:
 		position_t(int _x, int _y)
 			: x(_x), y(_y){ }
 
+		position_t() = default;
+
 		position_t(const position_t& _other) = default;
+
+		position_t& operator=(const position_t& _other) = default;
 
 		position_t(position_t&& _ref) = default;
 
+		position_t& operator=(position_t&& _ref) = default;
+
 		position_t& operator+=(const position_t& _rhs);
 
-		position_t& operator-() const;
+		position_t operator-() const;
 
 		position_t& operator-=(const position_t& _rhs);
+
+		bool operator==(const position_t& _rhs) const;
 
 		friend position_t operator+(const position_t& lhs, const position_t& _rhs) {
 			position_t tmp(lhs);
@@ -56,6 +64,10 @@ private:
 			position_t tmp(lhs);
 
 			return tmp -= _rhs;
+		}
+
+		friend position_t operator*(int _lhs, const position_t& _rhs) {
+			return { _rhs.x * _lhs, _rhs.y * _lhs };
 		}
 	};
 
@@ -76,6 +88,8 @@ public:
 
 	Block& operator[](position_t pos);
 
+	Block operator[](position_t pos) const;
+
 public:
 
 	void generate_rand();
@@ -84,9 +98,20 @@ public:
 
 	void merge(const position_t& _pos, const direction_t& _direction);
 
-	void update(const direction_t& _direction);
+	void update(const direction_t& _direction, HWND _hwnd);
 
 	void calculate_center();
+
+	D2D1_SIZE_F transform(
+		const D2D1_RECT_F& _src,
+		const position_t& _start,
+		const position_t& _diff, D2D1_SIZE_F _step);
+
+	void transform_mat(
+		const std::array<std::array<position_t, 4>, 4> _diff_mat,
+		HWND _hwnd,
+		direction_t _direction
+	);
 
 	bool failed();
 
@@ -96,13 +121,15 @@ public:
 
 	HRESULT init_paint(HWND _hwnd);
 
-	HRESULT on_paint(HWND _hwnd);
+	HRESULT on_paint();
 
-	HRESULT failed_paint(HWND _hwnd);
+	HRESULT failed_paint();
 
-	HRESULT paint_block_mat(HWND _hwnd);
+	HRESULT paint_block_mat();
 
-	HRESULT paint_score(HWND _hwnd);
+	HRESULT paint_score();
+
+	HRESULT paint_slot();
 
 	HRESULT handle_key(std::string _arrow_key, HWND _hwnd);
 
@@ -120,7 +147,14 @@ private:
 
 	D2D1_RECT_F calculate_block_pos(D2D1_RECT_F init_rect, position_t _pos);
 
+	std::array<std::array<position_t, kEdgeLen>, kEdgeLen> calculate_diff(
+		const grid_t& _pre_grid,
+		const grid_t& _cur_grid,
+		const direction_t& _direction) const;
+
 	size_t get_rand(size_t _max);
+
+	position_t get_normal_vector(const direction_t& _direction) const;
 
 	bool is_movable(const position_t& _tar, const direction_t& _direction);
 
@@ -136,9 +170,9 @@ private:
 
 private:
 
-	grid_t board;
+	grid_t board_;
 
-	size_t score;
+	size_t score_;
 
 	bool is_failed;
 
@@ -147,6 +181,7 @@ private:
 	ID2D1Factory* board_factory_{};
 	ID2D1HwndRenderTarget* render_target_{};
 	ID2D1SolidColorBrush* board_brush_{};
+	ID2D1SolidColorBrush* trans_brush_{};
 	D2D1_RECT_F rect_;
 
 	IDWriteTextFormat* text_format_{};

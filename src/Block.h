@@ -62,19 +62,28 @@ public:
 
 	bool operator==(const Block& _rhs) const;
 
+	bool operator!=(const Block& _rhs) const;
+
 public:
 	void reset();
 
 	DWORD get_value();
 
+	bool get_is_moving();
+
+	void set_is_moving(bool _is_moving);
+
 	HRESULT paint_block(
 		ID2D1HwndRenderTarget* _render_target,
 		ID2D1SolidColorBrush* _brush,
 		IDWriteTextFormat* _text_format,
-		D2D1_RECT_F _rect);
+		const D2D1_RECT_F& _rect,
+		bool is_slot=false);
 	
 private:
 	DWORD value_;
+
+	bool is_moving_;
 };
 
 #endif

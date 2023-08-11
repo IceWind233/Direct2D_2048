@@ -18,12 +18,13 @@ int WINAPI wWinMain(HINSTANCE h_instance, HINSTANCE, PWSTR, int n_cmd_show) {
 	MSG msg = {};
 
 	//TODO::If msg is null, render
-	while (GetMessage(&msg, nullptr, 0, 0)) {
-		if(&msg) {
-			
+	while (msg.message != WM_QUIT) {
+		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}else {
+			win.on_paint();
 		}
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
 	}
 
 	return 0;

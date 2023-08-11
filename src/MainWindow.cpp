@@ -14,8 +14,6 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 		}
 		board_.generate_rand();
 		board_.generate_rand();
-		board_.paint_block_mat(m_hwnd_);
-		board_.paint_score(m_hwnd_);
 
 		return 0;
 	}
@@ -66,9 +64,8 @@ LRESULT MainWindow::handle_keydown(WPARAM _w_param) {
 		break;
 	}
 	}
-	/*if (board_.failed()) {*/
-	if (true) {
-		board_.failed_paint(m_hwnd_);
+	if (board_.failed()) {
+		board_.failed_paint();
 
 	}
 
@@ -78,10 +75,10 @@ LRESULT MainWindow::handle_keydown(WPARAM _w_param) {
 void MainWindow::handle(std::string _str, HWND _hwnd) {
 	board_.handle_key(_str, m_hwnd_);
 	board_.generate_rand();
-	board_.paint_block_mat(m_hwnd_);
-	board_.paint_score(m_hwnd_);
+	board_.paint_block_mat();
+	board_.paint_score();
 }
 
 void MainWindow::on_paint() {
-	board_.on_paint(m_hwnd_);
+	board_.on_paint();
 }

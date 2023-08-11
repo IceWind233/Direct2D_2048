@@ -29,16 +29,17 @@ D2D1::ColorF Block_Color::get_color_f() {
 }
 
 Block::Block():
-	value_(0){}
+	value_(0),
+	is_moving_(false){}
 
 Block::Block(DWORD _value) :
-	value_(_value){}
+	value_(_value),
+	is_moving_(false){}
 
 Block& Block::operator+=(const Block& _rhs) {
 	value_ += _rhs.value_;
 
 	return *this;
-
 }
 
 Block::operator int() const {
@@ -49,19 +50,33 @@ bool Block::operator==(const Block& _rhs) const {
 	return value_ == _rhs.value_;
 }
 
+bool Block::operator!=(const Block& _rhs) const {
+	return !((*this) == _rhs);
+}
+
 void Block::reset() {
 	value_ = 0;
+	is_moving_ = false;
 }
 
 DWORD Block::get_value() {
 	return value_;
 }
 
+bool Block::get_is_moving() {
+	return is_moving_;
+}
+
+void Block::set_is_moving(bool _is_moving) {
+	is_moving_ = _is_moving;
+}
+
 HRESULT Block::paint_block(
 	ID2D1HwndRenderTarget*  _render_target,
 	ID2D1SolidColorBrush*	_brush,
 	IDWriteTextFormat*		_text_format,
-	D2D1_RECT_F				_rect) {
+	const D2D1_RECT_F&		_rect,
+	bool is_slot) {
 	constexpr auto _block_margin = 4.f;
 
 	wchar_t* _wcs = nullptr;
@@ -73,26 +88,26 @@ HRESULT Block::paint_block(
 	const auto _wrapper_bottom = _rect.bottom - _block_margin;
 
 	const auto _block_wrapper = D2D1::Rect(_wrapper_left, _wrapper_top, _wrapper_right, _wrapper_bottom);
-	// TODO:: Block radius
 	const auto _round_rect = D2D1::RoundedRect(_block_wrapper, 2.f, 2.f);
 
-	_wcs = new wchar_t[_str.length() + 1];
-	std::mbstowcs(_wcs, _str.c_str(), _str.length() + 1);
+	if (is_slot) {
+		_brush->SetColor(kBlockColor["0"].get_color_f());
+	}else {
+		_brush->SetColor(kBlockColor[_str].get_color_f());
+	}
 
-	_render_target->BeginDraw();
-
-	//TODO:: Block Color
-	_brush->SetColor(kBlockColor[_str].get_color_f());
 	_render_target->FillRoundedRectangle(_round_rect, _brush);
 
 	if(value_ != 0) {
+		_wcs = new wchar_t[_str.length() + 1];
+		std::mbstowcs(_wcs, _str.c_str(), _str.length() + 1);
+
 		_brush->SetColor(kTextColor);
 		_render_target->DrawText(_wcs, wcslen(_wcs), _text_format, _rect, _brush);
+
+		delete[] _wcs;
 	}
-
-	_render_target->EndDraw();
-	delete[] _wcs;
-
+	
 	return S_OK;
 }
 
