@@ -16,7 +16,7 @@
 #pragma comment(lib, "dwrite")
 #pragma comment(lib, "winmm.lib")
 
-const size_t kFps = 4;
+const size_t kFps = 10;
 
 Board::position_t& Board::
 	position_t::operator+=(const position_t& _rhs) {
@@ -95,14 +95,11 @@ void Board::merge(const position_t& _pos, const direction_t& _direction) {
 }
 
 void Board::update(const direction_t& _direction, HWND _hwnd) {
-	auto _tmp = board_;
+	auto _pre= board_;
 
 	map([&](Block&, const position_t& _pos) {
 		move(_pos, _direction);
 	}, _direction.second);
-
-	auto _diff_mat = calculate_diff(_tmp, board_, _direction);
-	transform_mat(_diff_mat, _hwnd, _direction);
 
 	map([&](Block&, position_t _pos) {
 		merge(_pos, _direction);
@@ -110,6 +107,9 @@ void Board::update(const direction_t& _direction, HWND _hwnd) {
 	map([&](Block&, position_t _pos) {
 		move(_pos, _direction);
 	}, _direction.second);
+
+	auto _diff_mat = calculate_diff(_pre, board_, _direction);
+	transform_mat(_pre, _diff_mat, _hwnd, _direction);
 }
 
 void Board::calculate_center() {
@@ -126,9 +126,9 @@ void Board::calculate_center() {
 
 D2D1_SIZE_F Board::transform(
 	const D2D1_RECT_F& _src,
-	const position_t& _start,
+	const Block& _pre_block,
 	const position_t& _diff,
-	D2D1_SIZE_F _step) {
+	D2D1_SIZE_F _step) const {
 
 	auto _move_step = _src.bottom - _src.top;
 	auto _x_step = _diff.x * _move_step / kFps + _step.width;
@@ -142,17 +142,18 @@ D2D1_SIZE_F Board::transform(
 
 	render_target_->BeginDraw();
 
-	(*this)[_start + _diff].paint_block(render_target_, trans_brush_, text_format_, _rect);
+	_pre_block.paint_block(render_target_, trans_brush_, text_format_, _rect);
 
 	render_target_->EndDraw();
-
-	/*on_paint();*/
 
 	return { _x_step, _y_step };
 }
 
-void Board::transform_mat(const std::array<std::array<position_t, kEdgeLen>, kEdgeLen> _diff_mat,
-	HWND _hwnd, direction_t _direction) {
+void Board::transform_mat(
+	const grid_t& _pre_grid,
+	const std::array<std::array<position_t, kEdgeLen>, kEdgeLen>& _diff_mat,
+	HWND _hwnd,
+	const direction_t& _direction) {
 	constexpr auto _margin = 7.f;
 	const auto _wrapper_rect = D2D1::Rect(
 		rect_.left + _margin,
@@ -170,9 +171,17 @@ void Board::transform_mat(const std::array<std::array<position_t, kEdgeLen>, kEd
 		map([&](const Block&, const position_t& _pos) {
 			if (_diff_mat[_pos.y][_pos.x] == position_t(0, 0)) return;
 
+			auto _start_time = timeGetTime();
+
 			const auto block_pos = calculate_block_pos(_wrapper_rect, _pos);
-			_step_mat[_pos.y][_pos.x] = 
-				transform(block_pos, _pos, _diff_mat[_pos.y][_pos.x], _step_mat[_pos.y][_pos.x]);
+			_step_mat[_pos.y][_pos.x] = transform(
+				block_pos,
+				_pre_grid[_pos.y][_pos.x],
+				_diff_mat[_pos.y][_pos.x],
+				_step_mat[_pos.y][_pos.x]
+			);
+
+			/*on_paint();*/
 
 			}, -_direction.second);
 
@@ -469,7 +478,8 @@ std::array<std::array<Board::position_t, kEdgeLen>, kEdgeLen> Board::calculate_d
 	const direction_t& _direction) const {
 	std::array<std::array<Board::position_t, kEdgeLen>, kEdgeLen> _diff_mat{};
 	std::array<position_t, kEdgeLen> _row{};
-	std::queue<position_t> _pos_queue;
+	std::queue<position_t> _pre_queue;
+	std::queue<position_t> _cur_queue;
 
 	_row.fill({ 0, 0 });
 	_diff_mat.fill(_row);
@@ -481,25 +491,49 @@ std::array<std::array<Board::position_t, kEdgeLen>, kEdgeLen> Board::calculate_d
 	}
 
 	for (auto i = 0; i < kEdgeLen; ++i) {
+		// _pre queue of position
 		for (auto j = 0; j < kEdgeLen; ++j) {
 			auto _pre = _start_pos + i * _normal_vector + j * _direction.second;
 
 			if (_pre_grid[_pre.y][_pre.x] != 0) {
-				_pos_queue.push(_pre);
+				_pre_queue.push(_pre);
 			}
 		}
+
+		// _cur queue of position
 		for (auto j = 0; j < kEdgeLen; ++j) {
 			auto _cur = _start_pos + i * _normal_vector + j * _direction.second;
 
 			if (_cur_grid[_cur.y][_cur.x] != 0) {
-				auto _pre = _pos_queue.front();
-
-				_diff_mat[_pre.y][_pre.x] = _cur - _pre;
-				_pos_queue.pop();
+				_cur_queue.push(_cur);
 			}
 		}
 
+		// comparing queue and making diff
+		while (!_pre_queue.empty()) {
 
+			auto _pre_pos = _pre_queue.front();
+			auto _cur_pos = _cur_queue.front();
+			auto _pre_block = _pre_grid[_pre_pos.y][_pre_pos.x];
+			auto _cur_block = _cur_grid[_cur_pos.y][_cur_pos.x];
+
+			if ( _pre_block == _cur_block ) {
+				_diff_mat[_pre_pos.y][_pre_pos.x] = _cur_pos - _pre_pos;
+				_pre_queue.pop();
+				_cur_queue.pop();
+				continue;
+			}
+			if ( 2 * _pre_block == _cur_block) {
+				_diff_mat[_pre_pos.y][_pre_pos.x] = _cur_pos - _pre_pos;
+				_pre_queue.pop();
+
+				_pre_pos = _pre_queue.front();
+				_diff_mat[_pre_pos.y][_pre_pos.x] = _cur_pos - _pre_pos;
+
+				_pre_queue.pop();
+				_cur_queue.pop();
+			}
+		}
 	}
 
 	return _diff_mat;
@@ -526,7 +560,7 @@ bool Board::is_movable(const position_t& _tar, const direction_t& _direction) {
 		return false;
 	}
 	if (is_edge(_tar, _direction)) {
-		(*this)[_tar].set_is_moving(false);
+		/*(*this)[_tar].set_is_moving(false);*/
 		return false;
 	}
 	if (is_zero(_next)){

@@ -76,7 +76,7 @@ HRESULT Block::paint_block(
 	ID2D1SolidColorBrush*	_brush,
 	IDWriteTextFormat*		_text_format,
 	const D2D1_RECT_F&		_rect,
-	bool is_slot) {
+	bool is_slot) const {
 	constexpr auto _block_margin = 4.f;
 
 	wchar_t* _wcs = nullptr;
@@ -125,3 +125,9 @@ Block_Color::Block_Color(uint8_t r, uint8_t g, uint8_t b) :
 
 Block_Color::Block_Color() :
 	color_(D2D1::ColorF(0, 0, 0)) { }
+
+Block operator*(int _lhs, const Block& _rhs) {
+	auto _tmp = Block(_lhs * _rhs.value_);
+
+	return _tmp;
+}

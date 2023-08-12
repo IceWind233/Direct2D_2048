@@ -104,13 +104,12 @@ public:
 
 	D2D1_SIZE_F transform(
 		const D2D1_RECT_F& _src,
-		const position_t& _start,
-		const position_t& _diff, D2D1_SIZE_F _step);
+		const Block& _pre_block, const position_t& _diff, D2D1_SIZE_F _step) const;
 
 	void transform_mat(
-		const std::array<std::array<position_t, 4>, 4> _diff_mat,
-		HWND _hwnd,
-		direction_t _direction
+		const grid_t& _pre_grid,
+		const std::array<std::array<position_t, 4>, 4>& _diff_mat,
+		HWND _hwnd, const direction_t& _direction
 	);
 
 	bool failed();

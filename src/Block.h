@@ -64,6 +64,8 @@ public:
 
 	bool operator!=(const Block& _rhs) const;
 
+	friend Block operator*(int _lhs, const Block& _rhs);
+
 public:
 	void reset();
 
@@ -78,7 +80,7 @@ public:
 		ID2D1SolidColorBrush* _brush,
 		IDWriteTextFormat* _text_format,
 		const D2D1_RECT_F& _rect,
-		bool is_slot=false);
+		bool is_slot=false) const;
 	
 private:
 	DWORD value_;
