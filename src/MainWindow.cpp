@@ -45,35 +45,36 @@ LRESULT MainWindow::handle_keydown(WPARAM _w_param) {
 	switch (_w_param) {
 	case VK_LEFT: {
 		if (!board_.is_operable("kLeft")) break;
-		handle("kLeft", m_hwnd_);
+		handle("kLeft");
 		break;
 	}
 	case VK_UP: {
 		if (!board_.is_operable("kUp")) break;
-		handle("kUp", m_hwnd_);
+		handle("kUp");
 		break;
 	}
 	case VK_RIGHT: {
 		if (!board_.is_operable("kRight")) break;
-		handle("kRight", m_hwnd_);
+		handle("kRight");
 		break;
 	}
 	case VK_DOWN: {
 		if (!board_.is_operable("kDown")) break;
-		handle("kDown", m_hwnd_);
+		handle("kDown");
 		break;
 	}
+	default: {
+		return 0;
 	}
-	if (board_.failed()) {
-		board_.failed_paint();
+	}
 
-	}
+	board_.failed();
 
 	return 0;
 }
 
-void MainWindow::handle(std::string _str, HWND _hwnd) {
-	board_.handle_key(_str, m_hwnd_);
+void MainWindow::handle(const std::string& _str) {
+	board_.handle_key(_str);
 	board_.generate_rand();
 	board_.paint_block_mat();
 	board_.paint_score();

@@ -22,7 +22,7 @@ public:
 
 	LRESULT handle_keydown(WPARAM _wparam);
 
-	void handle(std::string _str, HWND _hwnd);
+	void handle(const std::string& _str);
 
 	void on_paint();
 

@@ -16,7 +16,7 @@
 #pragma comment(lib, "dwrite")
 #pragma comment(lib, "winmm.lib")
 
-const size_t kFps = 10;
+constexpr size_t kFps = 5;
 
 Board::position_t& Board::
 	position_t::operator+=(const position_t& _rhs) {
@@ -77,6 +77,15 @@ void Board::generate_rand() {
 	(*this)[_pos] = Block(2);
 }
 
+void Board::generate_rand(int _val) {
+	const auto _pos_arr = get_valid_slots();
+	if (is_full) return;
+	const auto _rand = get_rand(_pos_arr.size() - 1);
+	const auto _pos = _pos_arr[_rand];
+
+	(*this)[_pos] = Block(_val);
+}
+
 void Board::move(const position_t& _pos, const direction_t& _direction) {
 	if (is_movable(_pos, _direction)) {
 		(*this)[_pos + _direction.second] = (*this)[_pos];
@@ -94,7 +103,7 @@ void Board::merge(const position_t& _pos, const direction_t& _direction) {
 	}
 }
 
-void Board::update(const direction_t& _direction, HWND _hwnd) {
+void Board::update(const direction_t& _direction) {
 	auto _pre= board_;
 
 	map([&](Block&, const position_t& _pos) {
@@ -109,7 +118,7 @@ void Board::update(const direction_t& _direction, HWND _hwnd) {
 	}, _direction.second);
 
 	auto _diff_mat = calculate_diff(_pre, board_, _direction);
-	transform_mat(_pre, _diff_mat, _hwnd, _direction);
+	transform_mat(_pre, _diff_mat, _direction);
 }
 
 void Board::calculate_center() {
@@ -140,11 +149,7 @@ D2D1_SIZE_F Board::transform(
 		_src.right + _x_step,
 		_src.bottom + _y_step);
 
-	render_target_->BeginDraw();
-
 	_pre_block.paint_block(render_target_, trans_brush_, text_format_, _rect);
-
-	render_target_->EndDraw();
 
 	return { _x_step, _y_step };
 }
@@ -152,7 +157,6 @@ D2D1_SIZE_F Board::transform(
 void Board::transform_mat(
 	const grid_t& _pre_grid,
 	const std::array<std::array<position_t, kEdgeLen>, kEdgeLen>& _diff_mat,
-	HWND _hwnd,
 	const direction_t& _direction) {
 	constexpr auto _margin = 7.f;
 	const auto _wrapper_rect = D2D1::Rect(
@@ -167,11 +171,12 @@ void Board::transform_mat(
 	}
 
 	for (auto i = 0; i < kFps; ++i) {
+		render_target_->BeginDraw();
+
+		paint_static();
 
 		map([&](const Block&, const position_t& _pos) {
 			if (_diff_mat[_pos.y][_pos.x] == position_t(0, 0)) return;
-
-			auto _start_time = timeGetTime();
 
 			const auto block_pos = calculate_block_pos(_wrapper_rect, _pos);
 			_step_mat[_pos.y][_pos.x] = transform(
@@ -181,14 +186,13 @@ void Board::transform_mat(
 				_step_mat[_pos.y][_pos.x]
 			);
 
-			/*on_paint();*/
-
 			}, -_direction.second);
 
+		render_target_->EndDraw();
+		set_time_delay_ms(20);
 	}
 
 	map([&](const Block&, const position_t& _pos) {
-		if (_diff_mat[_pos.y][_pos.x] == position_t(0, 0)) return;
 		(*this)[_pos + _diff_mat[_pos.y][_pos.x]].set_is_moving(false);
 	});
 }
@@ -217,7 +221,7 @@ bool Board::failed() {
 	return is_failed;
 }
 
-bool Board::get_failed() {
+bool Board::get_failed() const {
 
 	return is_failed;
 }
@@ -308,14 +312,38 @@ HRESULT Board::init_paint(const HWND _hwnd) {
 }
 
 HRESULT Board::on_paint() {
-	calculate_center();
-
-	PAINTSTRUCT ps;
 	HRESULT hr = S_OK;
 
-	const auto _round_rect =  D2D1::RoundedRect(rect_, kRadius, kRadius);
-
 	render_target_->BeginDraw();
+
+	hr = paint_static();
+
+	if(is_failed) {
+		hr = failed_paint();
+	}
+
+	hr = render_target_->EndDraw();
+
+	return hr;
+}
+
+HRESULT Board::failed_paint() const {
+	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 0.5));
+	auto _mask = render_target_->GetSize();
+	render_target_->FillRectangle(D2D1::Rect(0.f, 0.f, _mask.width, _mask.height), board_brush_);
+
+	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black));
+	auto _text_wrapper = D2D1::Rect(_mask.width / 6.f, _mask.height / 4.f, _mask.width * 5 / 6, _mask.height * 3 / 4);
+	render_target_->DrawText(L"Game Over", wcslen(L"Game Over"), text_format_, _text_wrapper, board_brush_);
+
+	return S_OK;
+}
+
+HRESULT Board::paint_static() {
+	calculate_center();
+
+	HRESULT hr = S_OK;
+	const auto _round_rect = D2D1::RoundedRect(rect_, kRadius, kRadius);
 
 	board_brush_->SetColor(kBoardColor);
 	render_target_->Clear(kBackGroundColor);
@@ -327,22 +355,7 @@ HRESULT Board::on_paint() {
 
 	paint_score();
 
-	hr = render_target_->EndDraw();
-
 	return hr;
-}
-
-HRESULT Board::failed_paint() {
-
-	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 0.5));
-	auto _mask = render_target_->GetSize();
-	render_target_->FillRectangle(D2D1::Rect(0.f, 0.f, _mask.width, _mask.height), board_brush_);
-
-	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black));
-	auto _text_wrapper = D2D1::Rect(_mask.width / 6.f, _mask.height / 4.f, _mask.width * 5 / 6, _mask.height * 3 / 4);
-	render_target_->DrawText(L"Game Over", wcslen(L"Game Over"), text_format_, _text_wrapper, board_brush_);
-
-	return S_OK;
 }
 
 HRESULT Board::paint_block_mat() {
@@ -369,7 +382,7 @@ HRESULT Board::paint_block_mat() {
 	return hr;
 }
 
-HRESULT Board::paint_score() {
+HRESULT Board::paint_score() const {
 
 	board_brush_->SetColor(kBoardColor);
 	auto _size = render_target_->GetSize();
@@ -424,10 +437,10 @@ HRESULT Board::paint_slot() {
 	return hr;
 }
 
-HRESULT Board::handle_key(std::string _arrow_key, HWND _hwnd) {
+HRESULT Board::handle_key(const std::string& _arrow_key) {
 	auto _direction = std::make_pair(_arrow_key, direction.at(_arrow_key));
 
-	update(_direction, _hwnd);
+	update(_direction);
 
 	return S_OK;
 }
@@ -475,7 +488,7 @@ D2D1_RECT_F Board::calculate_block_pos(D2D1_RECT_F init_rect, position_t _pos) {
 std::array<std::array<Board::position_t, kEdgeLen>, kEdgeLen> Board::calculate_diff(
 	const grid_t& _pre_grid,
 	const grid_t& _cur_grid,
-	const direction_t& _direction) const {
+	const direction_t& _direction) {
 	std::array<std::array<Board::position_t, kEdgeLen>, kEdgeLen> _diff_mat{};
 	std::array<position_t, kEdgeLen> _row{};
 	std::queue<position_t> _pre_queue;
@@ -547,7 +560,7 @@ size_t Board::get_rand(size_t _max) {
 	return _dist(_rng);
 }
 
-Board::position_t Board::get_normal_vector(const direction_t& _direction) const {
+Board::position_t Board::get_normal_vector(const direction_t& _direction) {
 
 	return { _direction.second.y, _direction.second.x };
 }
@@ -618,4 +631,9 @@ bool Board::is_out_of_range(const position_t& _pos) {
 bool Board::is_zero(const position_t& _pos) {
 
 	return (*this)[_pos] == 0;
+}
+
+void Board::set_time_delay_ms(size_t _ms) {
+	auto _start = timeGetTime();
+	while (timeGetTime() - _start < _ms);
 }

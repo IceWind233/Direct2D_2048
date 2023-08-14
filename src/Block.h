@@ -22,7 +22,7 @@ public:
 
 	Block_Color(uint8_t r, uint8_t g, uint8_t b);
 public:
-	D2D1::ColorF get_color_f();
+	D2D1::ColorF get_color_f() const;
 
 	
 };
@@ -69,9 +69,9 @@ public:
 public:
 	void reset();
 
-	DWORD get_value();
+	DWORD get_value() const;
 
-	bool get_is_moving();
+	bool get_is_moving() const;
 
 	void set_is_moving(bool _is_moving);
 

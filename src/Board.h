@@ -93,12 +93,13 @@ public:
 public:
 
 	void generate_rand();
+	void generate_rand(int _val);
 
 	void move(const position_t& _target, const direction_t& _direction);
 
 	void merge(const position_t& _pos, const direction_t& _direction);
 
-	void update(const direction_t& _direction, HWND _hwnd);
+	void update(const direction_t& _direction);
 
 	void calculate_center();
 
@@ -109,12 +110,12 @@ public:
 	void transform_mat(
 		const grid_t& _pre_grid,
 		const std::array<std::array<position_t, 4>, 4>& _diff_mat,
-		HWND _hwnd, const direction_t& _direction
+		const direction_t& _direction
 	);
 
 	bool failed();
 
-	bool get_failed();
+	bool get_failed() const;
 
 	bool is_operable(const std::string& _arrow_key);
 
@@ -122,15 +123,17 @@ public:
 
 	HRESULT on_paint();
 
-	HRESULT failed_paint();
+	HRESULT failed_paint() const;
+
+	HRESULT paint_static();
 
 	HRESULT paint_block_mat();
 
-	HRESULT paint_score();
+	HRESULT paint_score() const;
 
 	HRESULT paint_slot();
 
-	HRESULT handle_key(std::string _arrow_key, HWND _hwnd);
+	HRESULT handle_key(const std::string& _arrow_key);
 
 	HRESULT release_resource();
 
@@ -144,28 +147,30 @@ private:
 	template <typename func_t>
 	void map_all_direction(func_t func);
 
-	D2D1_RECT_F calculate_block_pos(D2D1_RECT_F init_rect, position_t _pos);
+	static D2D1_RECT_F calculate_block_pos(D2D1_RECT_F init_rect, position_t _pos);
 
-	std::array<std::array<position_t, kEdgeLen>, kEdgeLen> calculate_diff(
+	static std::array<std::array<position_t, kEdgeLen>, kEdgeLen> calculate_diff(
 		const grid_t& _pre_grid,
 		const grid_t& _cur_grid,
-		const direction_t& _direction) const;
+		const direction_t& _direction);
 
-	size_t get_rand(size_t _max);
+	static size_t get_rand(size_t _max);
 
-	position_t get_normal_vector(const direction_t& _direction) const;
+	static position_t get_normal_vector(const direction_t& _direction);
 
 	bool is_movable(const position_t& _tar, const direction_t& _direction);
 
 	bool is_mergable(const position_t& _tar, const direction_t& _direction);
 
-	bool is_edge(const position_t& _tar, const direction_t& _direction);
+	static bool is_edge(const position_t& _tar, const direction_t& _direction);
 
 	bool is_same(const position_t& _lhs, const position_t& _rhs);
 
-	bool is_out_of_range(const position_t& _pos);
+	static bool is_out_of_range(const position_t& _pos);
 
 	bool is_zero(const position_t& _pos);
+
+	void set_time_delay_ms(size_t _ms);
 
 private:
 

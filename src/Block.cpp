@@ -23,7 +23,7 @@ std::map<std::string, Block_Color> kBlockColor =
 };
 
 
-D2D1::ColorF Block_Color::get_color_f() {
+D2D1::ColorF Block_Color::get_color_f() const {
 
 	return color_;
 }
@@ -59,11 +59,11 @@ void Block::reset() {
 	is_moving_ = false;
 }
 
-DWORD Block::get_value() {
+DWORD Block::get_value() const {
 	return value_;
 }
 
-bool Block::get_is_moving() {
+bool Block::get_is_moving() const {
 	return is_moving_;
 }
 
@@ -98,7 +98,7 @@ HRESULT Block::paint_block(
 
 	_render_target->FillRoundedRectangle(_round_rect, _brush);
 
-	if(value_ != 0) {
+	if(value_ != 0 && !is_slot) {
 		_wcs = new wchar_t[_str.length() + 1];
 		std::mbstowcs(_wcs, _str.c_str(), _str.length() + 1);
 
