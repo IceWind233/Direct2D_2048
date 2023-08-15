@@ -17,4 +17,5 @@ add_executable(
 )
 
 target_compile_definitions(Direct2D PUBLIC UNICODE)
-target_compile_options(Direct2D PRIVATE "/SUBSYSTEM:WINDOWS")
+
+target_link_options(Direct2D PRIVATE "/SUBSYSTEM:WINDOWS")

@@ -12,6 +12,7 @@
 class MainWindow : public Base_Win<MainWindow> {
 
 public:
+
 	MainWindow();
 
 public:
@@ -28,10 +29,8 @@ public:
 
 private:
 
-	Board board_;
+	BoardController board_controller_;
 
 };
-
-
 
 #endif

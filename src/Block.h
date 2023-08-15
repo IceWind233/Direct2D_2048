@@ -1,8 +1,6 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#pragma once
-
 #include <map>
 #include <string>
 
@@ -22,12 +20,10 @@ public:
 
 	Block_Color(uint8_t r, uint8_t g, uint8_t b);
 public:
+
 	D2D1::ColorF get_color_f() const;
 
-	
 };
-
-void init_color_map();
 
 template <typename Ty>
 void safe_release(Ty** ppT) {
@@ -83,7 +79,7 @@ public:
 		bool is_slot=false) const;
 	
 private:
-	DWORD value_;
+	uint32_t value_;
 
 	bool is_moving_;
 };

@@ -9,11 +9,9 @@ MainWindow::MainWindow() = default;
 LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 	switch (u_msg) {
 	case WM_CREATE: {
-		if (FAILED(board_.init_paint(m_hwnd_))) {
-			return -1;
-		}
-		board_.generate_rand();
-		board_.generate_rand();
+		board_controller_.init_paint(m_hwnd_);
+		board_controller_.generate_rand();
+		board_controller_.generate_rand();
 
 		return 0;
 	}
@@ -24,42 +22,36 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 	}
 
 	case WM_DESTROY: {
-		board_.release_resource();
+		board_controller_.release_resource();
 		PostQuitMessage(0);
 		return 0;
 	}
-
-	case WM_PAINT: {
-		on_paint();
-		return 0;
-	}
-
 	}
 	return DefWindowProc(m_hwnd_, u_msg, w_param, l_param);
 }
 
 LRESULT MainWindow::handle_keydown(WPARAM _w_param) {
-	if(board_.get_failed()) {
+	if(board_controller_.get_failed()) {
 		return 0;
 	}
 	switch (_w_param) {
 	case VK_LEFT: {
-		if (!board_.is_operable("kLeft")) break;
+		if (!board_controller_.is_operable("kLeft")) break;
 		handle("kLeft");
 		break;
 	}
 	case VK_UP: {
-		if (!board_.is_operable("kUp")) break;
+		if (!board_controller_.is_operable("kUp")) break;
 		handle("kUp");
 		break;
 	}
 	case VK_RIGHT: {
-		if (!board_.is_operable("kRight")) break;
+		if (!board_controller_.is_operable("kRight")) break;
 		handle("kRight");
 		break;
 	}
 	case VK_DOWN: {
-		if (!board_.is_operable("kDown")) break;
+		if (!board_controller_.is_operable("kDown")) break;
 		handle("kDown");
 		break;
 	}
@@ -68,18 +60,14 @@ LRESULT MainWindow::handle_keydown(WPARAM _w_param) {
 	}
 	}
 
-	board_.failed();
-
 	return 0;
 }
 
 void MainWindow::handle(const std::string& _str) {
-	board_.handle_key(_str);
-	board_.generate_rand();
-	board_.paint_block_mat();
-	board_.paint_score();
+	board_controller_.handle_key(_str);
+
 }
 
 void MainWindow::on_paint() {
-	board_.on_paint();
+	board_controller_.on_paint();
 }
