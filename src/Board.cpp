@@ -166,11 +166,12 @@ BoardView::BoardView(HWND _hwnd) {
 BoardView::~BoardView() {
 	release_resource();
 }
-
+	
 HRESULT BoardView::init_paint(const HWND& _hwnd) {
+	// TODO: 
 	if (FAILED(D2D1CreateFactory(
 		D2D1_FACTORY_TYPE_SINGLE_THREADED,
-		&board_factory_
+		board_factory_.set()
 	))) {
 		return -1;
 	}
@@ -178,12 +179,12 @@ HRESULT BoardView::init_paint(const HWND& _hwnd) {
 	RECT _rect;
 	GetClientRect(_hwnd, &_rect);
 	const auto _size = Size_U(_rect.right, _rect.bottom);
-	if (board_brush_ == nullptr) {
+	if (board_brush_.get() != nullptr) {
 
 		if (FAILED(board_factory_->CreateHwndRenderTarget(
 			D2D1::RenderTargetProperties(),
 			D2D1::HwndRenderTargetProperties(_hwnd, _size.get_self()),
-			&render_target_
+			render_target_.set()
 		))) {
 			return -1;
 		}
@@ -204,7 +205,7 @@ HRESULT BoardView::init_paint(const HWND& _hwnd) {
 			DWRITE_FONT_STRETCH_NORMAL,
 			kBlockFontSize,
 			L"en-us",
-			&text_format_
+			text_format_.set()
 		))) {
 			return -1;
 		}
@@ -213,7 +214,7 @@ HRESULT BoardView::init_paint(const HWND& _hwnd) {
 		text_format_->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_CENTER);
 
 		if (FAILED(
-			render_target_->CreateSolidColorBrush(kBoardColor, &board_brush_)
+			render_target_->CreateSolidColorBrush(kBoardColor, board_brush_.set())
 		)) {
 			return -1;
 		}
@@ -238,14 +239,14 @@ HRESULT BoardView::on_paint(const Board& _board) {
 	return hr;
 }
 
-HRESULT BoardView::failed_paint() const {
+HRESULT BoardView::failed_paint() {
 	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 0.5));
 	const auto _mask = render_target_->GetSize();
-	render_target_->FillRectangle(D2D1::Rect(0.f, 0.f, _mask.width, _mask.height), board_brush_);
+	render_target_->FillRectangle(D2D1::Rect(0.f, 0.f, _mask.width, _mask.height), board_brush_.get());
 
 	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black));
 	const auto _text_wrapper = D2D1::Rect(_mask.width / 6.f, _mask.height / 4.f, _mask.width * 5 / 6, _mask.height * 3 / 4);
-	render_target_->DrawText(L"Game Over", wcslen(L"Game Over"), text_format_, _text_wrapper, board_brush_);
+	render_target_->DrawText(L"Game Over", wcslen(L"Game Over"), text_format_.get(), _text_wrapper, board_brush_.get());
 
 	return S_OK;
 }
@@ -258,7 +259,7 @@ HRESULT BoardView::paint_static(const Board& _board) {
 
 	board_brush_->SetColor(kBoardColor);
 	render_target_->Clear(kBackGroundColor);
-	render_target_->FillRoundedRectangle(_round_rect, board_brush_);
+	render_target_->FillRoundedRectangle(_round_rect, board_brush_.get());
 
 	hr = paint_slot(_board);
 
@@ -287,7 +288,7 @@ HRESULT BoardView::paint_block_mat(const Board& _board) const {
 			if (_block.get_is_moving()) continue;
 
 			const auto _block_pos = calculate_block_pos(_wrapper_rect, Board::position_t(j, i));
-			_block.paint_block(render_target_, board_brush_, text_format_, _block_pos.get_self());
+			_block.paint_block(render_target_.get(), board_brush_.get(), text_format_.get(), _block_pos.get_self());
 		}
 
 	return hr;
@@ -298,7 +299,7 @@ HRESULT BoardView::paint_score(size_t _score) const {
 	board_brush_->SetColor(kBoardColor);
 	const auto _size = render_target_->GetSize();
 	const auto _score_table = Rect_F(_size.width - 130.f, 10.f, _size.width - 5.f, 60.f);
-	render_target_->FillRoundedRectangle(D2D1::RoundedRect(_score_table.get_self(), 5.f, 5.f), board_brush_);
+	render_target_->FillRoundedRectangle(D2D1::RoundedRect(_score_table.get_self(), 5.f, 5.f), board_brush_.get());
 
 	board_brush_->SetColor(kTextColor);
 	
@@ -323,16 +324,16 @@ HRESULT BoardView::paint_score(size_t _score) const {
 	render_target_->DrawText(
 		L"Score:\n", 
 		wcslen(L"Score:\n"),
-		text_format_,
+		text_format_.get(),
 		_score_text_wrapper.get_self(), 
-		board_brush_);
+		board_brush_.get());
 
 	render_target_->DrawText(
 		_wcs,
 		wcslen(_wcs),
-		text_format_,
+		text_format_.get(),
 		_score_value_wrapper.get_self(),
-		board_brush_);
+		board_brush_.get());
 
 	delete[] _wcs;
 
@@ -350,18 +351,26 @@ HRESULT BoardView::paint_slot(const Board& _board) const {
 			const auto block_pos = calculate_block_pos(_wrapper_rect, Board::position_t(j, i));
 			_board[Board::position_t(j, i)].
 				paint_block(
-					render_target_,
-					board_brush_,
-					text_format_,
+					render_target_.get(),
+					board_brush_.get(),
+					text_format_.get(),
 					block_pos.get_self(), 
 					true);
 		}
-
-
 	return hr;
 }
 
 HRESULT BoardView::release_resource() {
+	render_target_.reset();
+	board_brush_.reset();
+	board_factory_.reset();
+	text_format_.reset();
+	write_factory_.reset();
+
+	return S_OK;
+}
+
+/*HRESULT BoardView::release_resource() {
 	safe_release(&board_brush_);
 	safe_release(&board_factory_);
 	safe_release(&render_target_);
@@ -369,7 +378,7 @@ HRESULT BoardView::release_resource() {
 	safe_release(&write_factory_);
 
 	return S_OK;
-}
+}*/
 
 BoardView::Size_F BoardView::transform(
 	const Rect_F& _src,
@@ -387,7 +396,7 @@ BoardView::Size_F BoardView::transform(
 		-_x_step, 
 		-_y_step);
 
-	_pre_block.paint_block(render_target_, board_brush_, text_format_, _rect.get_self());
+	_pre_block.paint_block(render_target_.get(), board_brush_.get(), text_format_.get(), _rect.get_self());
 
 	return { _x_step, _y_step };
 }

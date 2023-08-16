@@ -8,9 +8,9 @@
 #include <d2d1.h>
 #include <d2d1helper.h>
 #include <dwrite.h>
-#include <memory>
 
 #include "Block.h"
+#include "ComPtr.h"
 
 constexpr size_t kEdgeLen = 4;
 constexpr FLOAT kRadius = 10.f;
@@ -204,7 +204,7 @@ public:
 
 	HRESULT on_paint(const Board& _board);
 
-	HRESULT failed_paint() const;
+	HRESULT failed_paint();
 
 	HRESULT paint_static(const Board& _board);
 
@@ -248,13 +248,17 @@ private:
 
 private:
 	// TODO: Use Smart Ptr;
-	ID2D1Factory* board_factory_{};
+	
+	com_ptr<ID2D1Factory> board_factory_;
+	com_ptr<ID2D1HwndRenderTarget> render_target_;
+	com_ptr<ID2D1SolidColorBrush> board_brush_;
+	/*ID2D1Factory* board_factory_{};
 	ID2D1HwndRenderTarget* render_target_{};
-	ID2D1SolidColorBrush* board_brush_{};
+	ID2D1SolidColorBrush* board_brush_{};*/
 	Rect_F rect_;
 
-	IDWriteTextFormat* text_format_{};
-	IDWriteFactory* write_factory_{};
+	com_ptr<IDWriteTextFormat> text_format_;
+	com_ptr<IDWriteFactory> write_factory_;
 };
 
 class BoardController {

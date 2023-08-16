@@ -14,6 +14,7 @@ add_executable(
     ./src/Block.cpp
     ./src/Board.h
     ./src/Board.cpp
+    ./src/ComPtr.h
 )
 
 target_compile_definitions(Direct2D PUBLIC UNICODE)

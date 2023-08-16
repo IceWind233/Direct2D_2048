@@ -313,6 +313,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="E:\direct2D\src\Block.cpp" />
     <ClInclude Include="E:\direct2D\src\Board.h" />
     <ClCompile Include="E:\direct2D\src\Board.cpp" />
+    <ClInclude Include="E:\direct2D\src\ComPtr.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="E:\direct2D\build\ZERO_CHECK.vcxproj">

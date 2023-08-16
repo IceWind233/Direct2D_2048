@@ -27,6 +27,9 @@
     <ClInclude Include="E:\direct2D\src\Board.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="E:\direct2D\src\ComPtr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="E:\direct2D\CMakeLists.txt" />
