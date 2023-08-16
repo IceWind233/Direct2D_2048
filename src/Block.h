@@ -25,14 +25,6 @@ public:
 
 };
 
-template <typename Ty>
-void safe_release(Ty** ppT) {
-	if (*ppT) {
-		(*ppT)->Release();
-		(*ppT) = nullptr;
-	}
-}
-
 class Block {
 
 public:

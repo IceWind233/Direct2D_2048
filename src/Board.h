@@ -247,14 +247,10 @@ private:
 	static void set_time_delay_ms(size_t _ms);
 
 private:
-	// TODO: Use Smart Ptr;
 	
 	com_ptr<ID2D1Factory> board_factory_;
 	com_ptr<ID2D1HwndRenderTarget> render_target_;
 	com_ptr<ID2D1SolidColorBrush> board_brush_;
-	/*ID2D1Factory* board_factory_{};
-	ID2D1HwndRenderTarget* render_target_{};
-	ID2D1SolidColorBrush* board_brush_{};*/
 	Rect_F rect_;
 
 	com_ptr<IDWriteTextFormat> text_format_;

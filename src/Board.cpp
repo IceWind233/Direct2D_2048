@@ -168,7 +168,6 @@ BoardView::~BoardView() {
 }
 	
 HRESULT BoardView::init_paint(const HWND& _hwnd) {
-	// TODO: 
 	if (FAILED(D2D1CreateFactory(
 		D2D1_FACTORY_TYPE_SINGLE_THREADED,
 		board_factory_.set()
@@ -369,16 +368,6 @@ HRESULT BoardView::release_resource() {
 
 	return S_OK;
 }
-
-/*HRESULT BoardView::release_resource() {
-	safe_release(&board_brush_);
-	safe_release(&board_factory_);
-	safe_release(&render_target_);
-	safe_release(&text_format_);
-	safe_release(&write_factory_);
-
-	return S_OK;
-}*/
 
 BoardView::Size_F BoardView::transform(
 	const Rect_F& _src,
