@@ -10,6 +10,7 @@
 
 #include "Board.h"
 #include "Block.h"
+#include "Button.h"
 
 #pragma comment(lib, "d2d1")
 #pragma comment(lib, "dwrite")
@@ -218,6 +219,14 @@ HRESULT BoardView::init_paint(const HWND& _hwnd) {
 			return -1;
 		}
 	}
+	reset_button_ = Button(
+		L"Reset",
+		kBoardColor,
+		kTextColor,
+		D2D1::Rect(10.f, 10.f, 120.f, 50.f),
+		_hwnd);
+
+	reset_button_.create_button();
 
 	return S_OK;
 }
@@ -239,13 +248,15 @@ HRESULT BoardView::on_paint(const Board& _board) {
 }
 
 HRESULT BoardView::failed_paint() {
+	constexpr auto fail_text = L"Game Over\n Press Any Key To Restart";
+
 	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black, 0.5));
 	const auto _mask = render_target_->GetSize();
 	render_target_->FillRectangle(D2D1::Rect(0.f, 0.f, _mask.width, _mask.height), board_brush_.get());
 
 	board_brush_->SetColor(D2D1::ColorF(D2D1::ColorF::Black));
 	const auto _text_wrapper = D2D1::Rect(_mask.width / 6.f, _mask.height / 4.f, _mask.width * 5 / 6, _mask.height * 3 / 4);
-	render_target_->DrawText(L"Game Over", wcslen(L"Game Over"), text_format_.get(), _text_wrapper, board_brush_.get());
+	render_target_->DrawText(fail_text, wcslen(fail_text), text_format_.get(), _text_wrapper, board_brush_.get());
 
 	return S_OK;
 }
@@ -265,6 +276,11 @@ HRESULT BoardView::paint_static(const Board& _board) {
 	hr = paint_block_mat(_board);
 
 	hr = paint_score(_board.get_score());
+
+	reset_button_.paint_button(
+		render_target_.get(),
+		board_brush_.get(),
+		text_format_.get());
 
 	return hr;
 }
@@ -599,6 +615,18 @@ void BoardController::update(const Board::direction_t& _direction) {
 
 	const auto _diff_mat = calculate_diff(_pre, board_model_.get_board(), _direction);
 	board_view_.transform_mat(_pre, board_model_, _diff_mat, _direction);
+}
+
+void BoardController::reset_board() {
+	std::array<Block, kEdgeLen> _tmp;
+
+	_tmp.fill(Block(0));
+	board_model_.set_board().fill(_tmp);
+	board_model_.set_failed(false);
+	board_model_.set_score(0);
+
+	generate_rand();
+	generate_rand();
 }
 
 HRESULT BoardController::handle_key(const std::string& _arrow_key) {

@@ -15,6 +15,8 @@ add_executable(
     ./src/Board.h
     ./src/Board.cpp
     ./src/ComPtr.h
+    ./src/Button.h
+    ./src/Button.cpp
 )
 
 target_compile_definitions(Direct2D PUBLIC UNICODE)

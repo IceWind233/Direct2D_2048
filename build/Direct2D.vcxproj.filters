@@ -13,6 +13,9 @@
     <ClCompile Include="E:\direct2D\src\Board.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="E:\direct2D\src\Button.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="E:\direct2D\src\BaseWin.h">
@@ -28,6 +31,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="E:\direct2D\src\ComPtr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="E:\direct2D\src\Button.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

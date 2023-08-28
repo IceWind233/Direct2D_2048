@@ -21,6 +21,18 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 		return 0;
 	}
 
+	case WM_COMMAND: {
+		switch (LOWORD(w_param)) {
+		case BN_CLICKED: {
+			board_controller_.reset_board();
+			break;
+		}
+		}
+		return 0;
+	}
+
+
+
 	case WM_DESTROY: {
 		board_controller_.release_resource();
 		PostQuitMessage(0);
@@ -32,6 +44,7 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 
 LRESULT MainWindow::handle_keydown(WPARAM _w_param) {
 	if(board_controller_.get_failed()) {
+		board_controller_.reset_board();
 		return 0;
 	}
 	switch (_w_param) {

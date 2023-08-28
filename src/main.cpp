@@ -6,6 +6,12 @@
 #include "MainWindow.h"
 #pragma comment(lib, "d2d1")
 
+template <typename It>
+auto func(It beg, It end) -> decltype(*beg + 0) {
+
+	return *beg;
+}
+
 int WINAPI wWinMain(HINSTANCE h_instance, HINSTANCE, PWSTR, int n_cmd_show) {
 	MainWindow win;
 

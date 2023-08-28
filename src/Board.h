@@ -10,6 +10,7 @@
 #include <dwrite.h>
 
 #include "Block.h"
+#include "Button.h"
 #include "ComPtr.h"
 
 constexpr size_t kEdgeLen = 4;
@@ -92,9 +93,6 @@ public:
 	template <typename func_t>
 	void map(func_t func, Board::position_t _direction = Board::position_t(0, 1)) const;
 
-	template <typename func_t>
-	void map_all_direction(func_t func);
-
 	size_t get_score() const;
 
 	void set_score(size_t _score);
@@ -140,14 +138,9 @@ void Board::map(func_t func, position_t _direction) const {
 	}
 }
 
-template <typename func_t>
-void Board::map_all_direction(func_t func) {
-	for (auto _direction : direction) {
-		func(_direction);
-	}
-}
-
 class BoardView {
+
+	friend BoardController;
 
 	struct Rect_F {
 		float left_;
@@ -255,6 +248,8 @@ private:
 
 	com_ptr<IDWriteTextFormat> text_format_;
 	com_ptr<IDWriteFactory> write_factory_;
+
+	Button reset_button_{};
 };
 
 class BoardController {
@@ -286,6 +281,8 @@ public:
 	std::vector<Board::position_t> get_valid_slots();
 
 	void update(const Board::direction_t& _direction);
+
+	void reset_board();
 
 	HRESULT handle_key(const std::string& _arrow_key);
 
