@@ -7,68 +7,6 @@
 
 #include "ComPtr.h"
 
-//Todo:: create button 
-
-/*
-class ButtonView {
-
-public:
-
-	ButtonView(
-		D2D1::ColorF _button_color_,
-		D2D1::ColorF _button_text_color,
-		D2D1_RECT_F _button_wrapper);
-
-public:
-
-	HRESULT init_button(HWND _hwnd);
-
-private:
-
-	com_ptr<ID2D1Factory> button_factory_{};
-	com_ptr<ID2D1HwndRenderTarget> render_button_{};
-	com_ptr<ID2D1SolidColorBrush> button_brush_{};
-
-	com_ptr<IDWriteTextFormat> button_text_format_{};
-	com_ptr<IDWriteFactory> button_text_factory{};
-
-	D2D1_RECT_F button_wrapper_;
-	D2D1::ColorF button_color;
-	D2D1::ColorF button_text_color;
-
-};
-
-inline ButtonView::ButtonView(
-	D2D1::ColorF _button_color_,
-	D2D1::ColorF _button_text_color_,
-	D2D1_RECT_F _button_wrapper) :
-	button_wrapper_(_button_wrapper),
-	button_color(_button_color_),
-	button_text_color(_button_text_color_) {}
-
-inline HRESULT ButtonView::init_button(HWND _hwnd) {
-	D2D1CreateFactory(
-		D2D1_FACTORY_TYPE_SINGLE_THREADED,
-		button_factory_.set());
-
-	const auto _button_size = D2D1_SIZE_U(button_wrapper_.right, button_wrapper_);
-
-	if (button_brush_) {
-		button_factory_->CreateHwndRenderTarget(
-			D2D1::RenderTargetProperties(),
-			D2D1::HwndRenderTargetProperties(_hwnd, _button_size),
-			render_button_.set()
-		);
-
-		DWriteCreateFactory(
-			DWRITE_FACTORY_TYPE_SHARED,
-			__uuidof(IDWriteTextFormat),
-
-			)
-	}
-
-}
-*/
 
 class Button {
 
