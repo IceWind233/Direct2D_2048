@@ -32,9 +32,8 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 		return 0;
 	}
 
-
-
 	case WM_DESTROY: {
+		board_controller_.save_highest_score();
 		board_controller_.release_resource();
 		PostQuitMessage(0);
 		return 0;

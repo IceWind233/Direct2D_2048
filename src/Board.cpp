@@ -62,6 +62,7 @@ Board::Board() :
 	map([&](Block& _slot,  position_t) {
 		_slot = Block(0);
 	});
+	highest_score_ = get_file();
 }
 
 Block& Board::operator[](position_t pos) {
@@ -104,6 +105,74 @@ size_t Board::get_score() const {
 
 void Board::set_score(size_t _score) {
 	score_ = _score;
+}
+
+size_t Board::get_highest_score() const {
+	return highest_score_;
+}
+
+void Board::set_highest_score(size_t _score) {
+	highest_score_ = _score;
+}
+
+// TODO : read from file; if not exist create file "C:\2048_score.txt"
+
+size_t Board::get_file() const {
+	const auto _file_name = "2048_score.txt";
+	constexpr size_t _buffer_size = 10;
+	char _buffer[_buffer_size];
+	DWORD _bytes_read;
+
+	auto file_h = CreateFileA(
+		_file_name,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		nullptr,
+		OPEN_EXISTING,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr
+	);
+	if (file_h == INVALID_HANDLE_VALUE) {
+		set_file(0);
+	}
+
+	ReadFile(
+		file_h,
+		_buffer,
+		sizeof(_buffer) - 1,
+		&_bytes_read,
+		nullptr);
+
+	CloseHandle(file_h);
+
+	return atoi(_buffer);
+}
+
+void Board::set_file(size_t _highest_score) const {
+	const auto _file_name = "2048_score.txt";
+
+	auto file_h = CreateFileA(
+		_file_name,
+		GENERIC_WRITE,
+		FILE_SHARE_WRITE,
+		nullptr,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		nullptr);
+
+	DWORD _bytes_written;
+	auto _str = std::to_string(_highest_score);
+	char* c_str = new char[_str.length() + 1];
+	strcpy(c_str, _str.c_str());
+
+	WriteFile(
+		file_h,
+		c_str,
+		sizeof(int),
+		&_bytes_written,
+		nullptr);
+
+	delete[] c_str;
 }
 
 
@@ -277,6 +346,8 @@ HRESULT BoardView::paint_static(const Board& _board) {
 
 	hr = paint_score(_board.get_score());
 
+	hr = paint_highest_score(max(_board.get_highest_score(), _board.get_score()));
+
 	reset_button_.paint_button(
 		render_target_.get(),
 		board_brush_.get(),
@@ -309,26 +380,22 @@ HRESULT BoardView::paint_block_mat(const Board& _board) const {
 	return hr;
 }
 
-HRESULT BoardView::paint_score(size_t _score) const {
-
-	board_brush_->SetColor(kBoardColor);
-	const auto _size = render_target_->GetSize();
-	const auto _score_table = Rect_F(_size.width - 130.f, 10.f, _size.width - 5.f, 60.f);
-	render_target_->FillRoundedRectangle(D2D1::RoundedRect(_score_table.get_self(), 5.f, 5.f), board_brush_.get());
-
-	board_brush_->SetColor(kTextColor);
-	
+HRESULT BoardView::paint_score_board(
+	size_t _score,
+	wchar_t* _title,
+	Rect_F _position) const {
+	constexpr auto _top_margin = 10.f;
+	const auto _score_table = _position;
 	const auto _score_str = std::to_string(_score);
 	auto* _wcs = new wchar_t[_score_str.length() + 1];
-	std::mbstowcs(_wcs, _score_str.c_str(), _score_str.length() + 1);
 
-	constexpr auto _top_margin = 10.f;
 	const auto _score_text_wrapper = set_rect_margin(
 		_score_table,
 		0.f,
-		_top_margin, 
+		_top_margin,
 		0.f,
 		0.f);
+
 	const auto _score_value_wrapper = set_rect_margin(
 		_score_table,
 		0.f,
@@ -336,21 +403,50 @@ HRESULT BoardView::paint_score(size_t _score) const {
 		0.f,
 		0.f);
 
-	render_target_->DrawText(
-		L"Score:\n", 
-		wcslen(L"Score:\n"),
-		text_format_.get(),
-		_score_text_wrapper.get_self(), 
+	board_brush_->SetColor(kBoardColor);
+	render_target_->FillRoundedRectangle(
+		D2D1::RoundedRect(_score_table.get_self(),
+			5.f,
+			5.f),
 		board_brush_.get());
 
-	render_target_->DrawText(
-		_wcs,
-		wcslen(_wcs),
-		text_format_.get(),
-		_score_value_wrapper.get_self(),
-		board_brush_.get());
+	paint_text(_title, _score_text_wrapper);
+
+	std::mbstowcs(_wcs, _score_str.c_str(), _score_str.length() + 1);
+	paint_text(_wcs, _score_value_wrapper);
 
 	delete[] _wcs;
+
+	return S_OK;
+}
+
+HRESULT BoardView::paint_text(wchar_t* _text, Rect_F _position) const {
+	board_brush_->SetColor(kTextColor);
+
+	render_target_->DrawText(
+		_text,
+		wcslen(_text),
+		text_format_.get(),
+		_position.get_self(),
+		board_brush_.get());
+
+	return S_OK;
+}
+
+HRESULT BoardView::paint_score(size_t _score) const {
+	const auto _size = render_target_->GetSize();
+	const auto _score_table = Rect_F(_size.width - 130.f, 10.f, _size.width - 5.f, 60.f);
+
+	paint_score_board(_score, L"Score:\n", _score_table);
+
+	return S_OK;
+}
+
+HRESULT BoardView::paint_highest_score(size_t _highest_score) const {
+	const auto _size = render_target_->GetSize();
+	const auto _score_table = Rect_F(_size.width - 260.f, 10.f, _size.width - 140.f, 60.f);
+
+	paint_score_board(_highest_score, L"Best:\n", _score_table);
 
 	return S_OK;
 }
@@ -560,6 +656,10 @@ bool BoardController::failed() {
 				}
 			}
 			});
+		if (board_model_.get_failed()) {
+			const auto _high_score = max(board_model_.get_score(), board_model_.get_highest_score());
+			board_model_.set_highest_score(_high_score);
+		}
 	}
 	return board_model_.get_failed();
 }
@@ -622,11 +722,25 @@ void BoardController::reset_board() {
 
 	_tmp.fill(Block(0));
 	board_model_.set_board().fill(_tmp);
+
+	board_model_.set_highest_score(max(
+		board_model_.get_score(),
+		board_model_.get_highest_score()));
+
 	board_model_.set_failed(false);
 	board_model_.set_score(0);
 
+
 	generate_rand();
 	generate_rand();
+}
+
+void BoardController::save_highest_score() const {
+	const auto _high_score = max(
+		board_model_.get_score(),
+		board_model_.get_highest_score());
+
+	board_model_.set_file(_high_score);
 }
 
 HRESULT BoardController::handle_key(const std::string& _arrow_key) {

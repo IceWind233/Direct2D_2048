@@ -97,6 +97,14 @@ public:
 
 	void set_score(size_t _score);
 
+	size_t get_highest_score() const;
+
+	void set_highest_score(size_t _score);
+
+	size_t get_file() const;
+
+	void set_file(size_t _highest_score) const;
+
 	bool get_failed() const;
 
 	void set_failed(bool _is_failed);
@@ -114,6 +122,8 @@ private:
 	grid_t board_;
 
 	size_t score_;
+
+	size_t highest_score_;
 
 	bool is_failed;
 
@@ -203,7 +213,15 @@ public:
 
 	HRESULT paint_block_mat(const Board& _board) const;
 
+	HRESULT paint_score_board(
+		size_t _score,
+		wchar_t* _title,
+		Rect_F _position) const;
+	HRESULT paint_text(wchar_t* _text, Rect_F _position) const;
+
 	HRESULT paint_score(size_t _score) const;
+
+	HRESULT paint_highest_score(size_t _highest_score) const;
 
 	HRESULT paint_slot(const Board& _board) const;
 
@@ -283,6 +301,8 @@ public:
 	void update(const Board::direction_t& _direction);
 
 	void reset_board();
+
+	void save_highest_score() const;
 
 	HRESULT handle_key(const std::string& _arrow_key);
 
