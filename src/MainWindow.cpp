@@ -25,6 +25,7 @@ LRESULT MainWindow::handle_message(UINT u_msg, WPARAM w_param, LPARAM l_param) {
 		switch (LOWORD(w_param)) {
 		case BN_CLICKED: {
 			board_controller_.reset_board();
+			SetFocus(m_hwnd_);
 			break;
 		}
 		}
